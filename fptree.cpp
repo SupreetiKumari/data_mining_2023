@@ -9,6 +9,7 @@
 
 using namespace std;
 
+
 struct FPNode {
     string item;
     int frequency;
@@ -88,14 +89,14 @@ public:
         }
 
         
-        cout << "edge frequency map:" << endl ;
+        // cout << "edge frequency map:" << endl ;
 
         // now select the edge with maximum frequency and merge the two items
        int max_freq = 0 ;
         string max_edge = "";
         for(auto it = edge_frequency.begin(); it != edge_frequency.end(); ++it){
             // print the edge and its frequency
-            cout << it->first << " " << it->second << endl;
+            // cout << it->first << " " << it->second << endl;
             if(it->second > max_freq){
                 max_freq = it->second;
                 max_edge = it->first;
@@ -134,8 +135,7 @@ public:
 
         while(!q.empty()) {
             
-            
-
+        
             // vector<FPNode*> level;
             // for (auto it = temp->children.begin(); it != temp->children.end(); ++it) {
             //     level.push_back(it->second);
@@ -300,9 +300,19 @@ int main() {
     vector<vector<string> > dataset = {
         {"A", "B", "C", "D", "E"},
         {"A", "B", "C", "D", "F"},
-        {"A", "B", "C", "D", "E", "G", "A", "B"},
-        {"A", "B", "C", "D", "E", "F", "G"}
+        {"A", "B", "C", "D", "E", "G"},
+        {"A", "B", "C", "D", "E", "F", "G"},
+        {"B", "C", "D", "E", "F", "G"}
     };
+
+    // convert "A" to 1 and "B" to 2 and so on
+    for (auto& transaction : dataset) {
+        for (auto& item : transaction) {
+            item = to_string(item[0] - 'A' + 1);
+        }
+    }
+
+   
 
     // int min_support = 10;
 
