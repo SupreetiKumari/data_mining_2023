@@ -53,7 +53,9 @@ public:
                 current->children[item] = new FPNode(item, current);
             }
             current = current->children[item];
-            current->frequency++;
+            current->frequency++; 
+
+
         }
     }
 
@@ -66,16 +68,21 @@ public:
         
         // while(prev!=curr){
         while(true){
+
             // map to store the frequency of each edge
         map <string, int> edge_frequency;
-        prev = curr ;
+        
         // create a copy of the root node for deletion
-        curr = new FPNode("", nullptr);
-        curr->children = root->children;
+        // curr = new FPNode("", nullptr);
+        // curr->children = root->children;
+        
         int lev = 0;
 
         queue <FPNode*> q;
         q.push(curr) ;
+
+        int max_freq = 0 ;
+        string max_edge = "";
 
 
 
@@ -99,6 +106,12 @@ public:
                             freq += edge_frequency[edge];
                         }
                         edge_frequency[edge] = freq;
+
+                        // update the max_freq and max_edge
+                        if(freq > max_freq){
+                            max_freq = freq;
+                            max_edge = edge;
+                        }
                     }
          
                 }
@@ -110,16 +123,20 @@ public:
         // cout << "edge frequency map:" << endl ;
 
         // now select the edge with maximum frequency and merge the two items
-       int max_freq = 0 ;
-        string max_edge = "";
-        for(auto it = edge_frequency.begin(); it != edge_frequency.end(); ++it){
-            // print the edge and its frequency
-            // cout << it->first << " " << it->second << endl;
-            if(it->second > max_freq){
-                max_freq = it->second;
-                max_edge = it->first;
-            }
-        }
+    //    int max_freq = 0 ;
+    //     string max_edge = "";
+        // for(auto it = edge_frequency.begin(); it != edge_frequency.end(); ++it){
+        //     // print the edge and its frequency
+        //     // cout << it->first << " " << it->second << endl;
+        //     if(it->second > max_freq){
+        //         max_freq = it->second;
+        //         max_edge = it->first;
+        //     }
+        // }
+
+        
+
+
 
         if(max_freq<3){
             // terminate = true ;
@@ -128,11 +145,15 @@ public:
 
         cout << "max freq edge: " << max_edge << " has frequency: "  << max_freq << endl;
 
+        
+
         // now merge the two items in the edge
         stringstream ss(max_edge);
         string item1, item2;
         ss >> item1;
         ss >> item2;
+
+        
 
         
 
@@ -143,12 +164,16 @@ public:
 
         // now merge the two items everywhere in the tree
         // iterate over the entire tree to find all the edges with item1 and item2
-        FPNode *temp = new FPNode("", nullptr);
-        temp->children = root->children;
+        
+        FPNode *temp1 = new FPNode("", nullptr);
+        temp1->children = root->children;
 
-        // queue <FPNode*> q;
-        // q.clear() ;
-        q.push(temp) ;
+        
+        
+        q.push(temp1) ;
+        
+        
+        // q.push(root) ;
 
 
         while(!q.empty()) {
@@ -158,26 +183,41 @@ public:
             // for (auto it = temp->children.begin(); it != temp->children.end(); ++it) {
             //     level.push_back(it->second);
             // }
-            
+            // cout << "temp children: " << temp1->children.size() << endl;
             int n = q.size();
             for(int i=0;i<n;i++){
                 FPNode* temp = q.front();
                 q.pop();
 
+                // cout << "start processing node " << temp->item << " " << temp->frequency << " " << endl ;
+
+                // store all the children of temp in a vector
+                vector<FPNode*> children;
                 for(auto it = temp->children.begin(); it != temp->children.end(); ++it){
-                    q.push(it->second);
-                    FPNode* node = it->second;
+                    children.push_back(it->second);
+                }
+
+
+                
+                for(auto it = children.begin(); it != children.end(); ++it){
+                    
+                    FPNode* node = *it;
+                    // cout << "processing node " << node->item << " " << node->frequency << " " << endl ;
                     if(node->item == item1){
+
                     // if found then merge this node with its child node with item2
                     // first find the nodes corresponding to the two items
                     FPNode* node1 = node;
                     // check if node1 has a child with item2
                     if(node1->children.find(item2) == node1->children.end()){
+                        q.push(node);
                         continue;
                     }
 
                     // node 2 is a child of node 1
                     FPNode* node2 = node1->children[item2];
+
+                    
 
                     // check if frequency of node2 is less than node1
                     if(node2->frequency < node1->frequency){
@@ -225,12 +265,19 @@ public:
                         // remove the string "copy" from the item of node1_copy
                         // node1_copy->item = item1;
 
+
+                        // update the queue
                         
+                        q.push(node1_copy);
+                        q.push(node1) ;
+
                             
                         
                     }
                     else{ // just merge the nodes
                         // now merge the two nodes
+
+                        // cout << "merging nodes " << node1->item << " " << node1->frequency << " " << node2->item << " " << node2->frequency << endl;
                     node1->item = item1 + "_" + item2;
                     //frequency is that of the node 2
                     node1->frequency = node2->frequency;
@@ -247,14 +294,47 @@ public:
                     for(auto it = node2->children.begin(); it != node2->children.end(); ++it){
                         it->second->parent = node1;
                     }
+
+
+                    // update the queue
+                    q.push(node1) ;
+
+                    // cout << "merged nodes " << node1->item << " " << node1->frequency << endl;
+
+                    // cout << "queue: " << endl ;
+                    // // print the elements of queue without popping
+                    // int n = q.size();
+                    // for(int i=0;i<n;i++){
+                    //     FPNode* node = q.front();
+                    //     q.pop();
+                    //     cout << node->item <<  " ";
+                    //     q.push(node);
+                    // }
+                    // cout << endl;
+
+
+
+
+                
+
+
+
                     }
 
                     
 
 
                 }
+                else{
+                    q.push(node);
+                }
+
+                // cout << "end processing node " << node->item << " " << node->frequency << " " << endl ;
+
                     
                 }
+
+                
 
                 
             }
@@ -264,8 +344,14 @@ public:
 
         }
 
+        // clear space for the edge_frequency map
+        // edge_frequency.clear();
+        // delete the copy of the root node
+        // delete temp;
 
-        curr = root ;
+
+        // cout << "end of iteration " << endl ;
+        
 
         }
 
@@ -298,15 +384,19 @@ public:
             for(int i=0;i<n;i++){
                 FPNode* node = q.front();
                 q.pop();
-
-                // cout << node->item << " " << node->frequency << " " << node->parent->item << " " << node->children.size() << " ";
+                
+                
+                    // cout << node->item << " " << node->frequency << " " << node->parent->item << " " << node->children.size() << " ";
                 for(auto it = node->children.begin(); it != node->children.end(); ++it){
                     q.push(it->second);
                     cout << it->second->item << " " << it->second->frequency << " ";
                 }
-                cout << endl;
+                
+
+
+                
             }
-            
+            cout << endl;
         
 
         }
@@ -315,14 +405,12 @@ public:
 };
 
 
-
-
 /////-----------------------------------
 
 
 
 int main() {
-    ifstream in("inp.dat");
+    ifstream in("D_medium.dat");
     in >> noskipws;
 
 
@@ -339,7 +427,6 @@ int main() {
             bool eol = false;
 
             while (true) { //for reading the number
-            cout << "HI guys" << endl ;
                 in >> ch;
                 if (ch == '\n') {
                     eol = true;
@@ -416,13 +503,13 @@ int main() {
     }
 
     // print the fp tree
-    fp_tree.print();
+    // fp_tree.print();
 
     // now merge the fp tree
     fp_tree.merge();
 
     // print the fp tree
-    fp_tree.print();
+    // fp_tree.print();
 
     
     

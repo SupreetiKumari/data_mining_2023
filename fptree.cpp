@@ -48,6 +48,7 @@ public:
         
         // while(prev!=curr){
         while(true){
+
             // map to store the frequency of each edge
         map <string, int> edge_frequency;
         prev = curr ;
@@ -58,6 +59,9 @@ public:
 
         queue <FPNode*> q;
         q.push(curr) ;
+
+        int max_freq = 0 ;
+        string max_edge = "";
 
 
 
@@ -81,6 +85,12 @@ public:
                             freq += edge_frequency[edge];
                         }
                         edge_frequency[edge] = freq;
+
+                        // update the max_freq and max_edge
+                        if(freq > max_freq){
+                            max_freq = freq;
+                            max_edge = edge;
+                        }
                     }
          
                 }
@@ -92,16 +102,20 @@ public:
         // cout << "edge frequency map:" << endl ;
 
         // now select the edge with maximum frequency and merge the two items
-       int max_freq = 0 ;
-        string max_edge = "";
-        for(auto it = edge_frequency.begin(); it != edge_frequency.end(); ++it){
-            // print the edge and its frequency
-            // cout << it->first << " " << it->second << endl;
-            if(it->second > max_freq){
-                max_freq = it->second;
-                max_edge = it->first;
-            }
-        }
+    //    int max_freq = 0 ;
+    //     string max_edge = "";
+        // for(auto it = edge_frequency.begin(); it != edge_frequency.end(); ++it){
+        //     // print the edge and its frequency
+        //     // cout << it->first << " " << it->second << endl;
+        //     if(it->second > max_freq){
+        //         max_freq = it->second;
+        //         max_edge = it->first;
+        //     }
+        // }
+
+        
+
+
 
         if(max_freq<3){
             // terminate = true ;
@@ -280,15 +294,19 @@ public:
             for(int i=0;i<n;i++){
                 FPNode* node = q.front();
                 q.pop();
-
-                // cout << node->item << " " << node->frequency << " " << node->parent->item << " " << node->children.size() << " ";
+                
+                
+                    // cout << node->item << " " << node->frequency << " " << node->parent->item << " " << node->children.size() << " ";
                 for(auto it = node->children.begin(); it != node->children.end(); ++it){
                     q.push(it->second);
                     cout << it->second->item << " " << it->second->frequency << " ";
                 }
-                cout << endl;
+                
+
+
+                
             }
-            
+            cout << endl;
         
 
         }
@@ -305,12 +323,12 @@ int main() {
         {"B", "C", "D", "E", "F", "G"}
     };
 
-    // convert "A" to 1 and "B" to 2 and so on
-    for (auto& transaction : dataset) {
-        for (auto& item : transaction) {
-            item = to_string(item[0] - 'A' + 1);
-        }
-    }
+    // // convert "A" to 1 and "B" to 2 and so on
+    // for (auto& transaction : dataset) {
+    //     for (auto& item : transaction) {
+    //         item = to_string(item[0] - 'A' + 1);
+    //     }
+    // }
 
    
 
