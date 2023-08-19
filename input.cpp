@@ -228,12 +228,12 @@ public:
                         // the children of node 1 except node 2 are the children of temp
                         
                         node1_copy->children = node1->children;
-                        // node1_copy->children.erase(item2);
+                        node1_copy->children.erase(item2);
 
-                        // update the parent pointers of the children of temp
-                        for(auto it = node1_copy->children.begin(); it != node1_copy->children.end(); ++it){
-                            it->second->parent = node1_copy;
-                        }
+                        // // update the parent pointers of the children of temp
+                        // for(auto it = node1_copy->children.begin(); it != node1_copy->children.end(); ++it){
+                        //     it->second->parent = node1_copy;
+                        // }
 
                         // now add temp to the children of node1's parent
                         node1->parent->children[item1+"copy"] = node1_copy;
@@ -259,7 +259,12 @@ public:
                         }
 
                         // remove the node2 from the children of node1_copy
-                        node1_copy->children.erase(item2);
+                        // node1_copy->children.erase(item2);
+
+                        // update the parent pointers of the children of node1_copy
+                        for(auto it = node1_copy->children.begin(); it != node1_copy->children.end(); ++it){
+                            it->second->parent = node1_copy;
+                        }
                         
 
                         // remove the string "copy" from the item of node1_copy
@@ -298,26 +303,6 @@ public:
 
                     // update the queue
                     q.push(node1) ;
-
-                    // cout << "merged nodes " << node1->item << " " << node1->frequency << endl;
-
-                    // cout << "queue: " << endl ;
-                    // // print the elements of queue without popping
-                    // int n = q.size();
-                    // for(int i=0;i<n;i++){
-                    //     FPNode* node = q.front();
-                    //     q.pop();
-                    //     cout << node->item <<  " ";
-                    //     q.push(node);
-                    // }
-                    // cout << endl;
-
-
-
-
-                
-
-
 
                     }
 
@@ -402,6 +387,173 @@ public:
         }
 
     }
+
+    void compress(){
+        //now iterate over the fp tree and for each node having "_" in its item, print the item and its frequency
+        queue <FPNode*> q;
+        q.push(root) ;
+
+        map <string, string> compression_map ;
+        char ch = 'A';
+
+        while(!q.empty()) {
+            FPNode* node = q.front();
+            q.pop();
+
+            if(node->item.find("_") != string::npos){
+                // check if node is already present in the compression map
+                if(compression_map.find(node->item) == compression_map.end()){
+                    // add the node to the compression map
+                    compression_map[node->item] = ch;
+                    ch++;
+                }
+                
+            }
+
+            for(auto it = node->children.begin(); it != node->children.end(); ++it){
+                q.push(it->second);
+            }
+        }
+
+        // // print the compression map
+        // cout << "compression map:" << endl;
+        // for(auto it = compression_map.begin(); it != compression_map.end(); ++it){
+        //     cout << it->first << " " << it->second << endl;
+        // }
+
+        // using the compression map replace the items in the fp tree
+        queue <FPNode*> q1;
+        q1.push(root) ;
+
+        while(!q1.empty()) {
+            FPNode* node = q1.front();
+            q1.pop();
+
+            if(node->item.find("_") != string::npos){
+                // replace the item of the node with the corresponding value in the compression map
+                node->item = compression_map[node->item];
+            }
+
+            for(auto it = node->children.begin(); it != node->children.end(); ++it){
+                q1.push(it->second);
+            }
+        }
+
+
+        // using the compression map and the original dataset construct the compressed transactions
+        vector<vector<string>> compressed_dataset;
+
+
+        // iterate over the fptree and for each root to leaf path, construct the compressed transaction
+        q.push(root) ;
+        while(!q.empty()) {
+            FPNode* node = q.front();
+            q.pop();
+            // cout <<  "HI GUYS" << endl ;
+
+            // check if node is a leaf node
+            if(node->children.size() == 0){
+                // construct the compressed transaction
+                vector<string> compressed_transaction;
+                FPNode* temp = node;
+                while(temp != root){
+                    // cout << "processing node " << temp->item << " " << temp->frequency << " " << temp->parent->item << " " << temp->children.size() << " ";
+                    
+                    // check if the item is present in the compression map
+                    if(compression_map.find(temp->item) != compression_map.end()){
+                        compressed_transaction.push_back(compression_map[temp->item]);
+                    }
+                    else{
+                        compressed_transaction.push_back(temp->item);
+                    }
+                    temp = temp->parent;
+                }
+
+                // add the compressed transaction to the compressed dataset the number of times equal to the frequency of the node
+                for(int i=0;i<node->frequency;i++){
+                    compressed_dataset.push_back(compressed_transaction);
+                }
+            }
+
+            else{
+                // check if node's frequency is greater than sum of frequencies of its children
+                int sum = 0;
+                for(auto it = node->children.begin(); it != node->children.end(); ++it){
+                    sum += it->second->frequency;
+                }
+                if (node->frequency > sum){
+                    // construct the compressed transaction
+                    vector<string> compressed_transaction;
+                    FPNode* temp = node;
+                    while(temp->parent != root){
+                        // check if the item is present in the compression map
+                        if(compression_map.find(temp->item) != compression_map.end()){
+                            compressed_transaction.push_back(compression_map[temp->item]);
+                        }
+                        else{
+                            compressed_transaction.push_back(temp->item);
+                        }
+                        temp = temp->parent;
+                    }
+                
+                // add the root to leaf path to this node to the compressed dataset the number of times equal to the difference of the frequency of the node and the sum of frequencies of its children
+                for(int i=0;i<node->frequency-sum;i++){
+                    // add the compressed transaction to the compressed dataset
+                    compressed_dataset.push_back(compressed_transaction);
+                }
+                }
+                
+
+            }
+
+            for(auto it = node->children.begin(); it != node->children.end(); ++it){
+                q.push(it->second);
+            }
+        }
+
+
+
+
+        // print the compressed dataset
+        cout << "compressed dataset:" << endl;
+        for(int i=0;i<compressed_dataset.size();i++){
+            for(int j=0;j<compressed_dataset[i].size();j++){
+                cout << compressed_dataset[i][j] << " ";
+            }
+            cout << endl;
+        }
+    
+
+
+    }
+
+    int calc_space(){
+        // iterate over the fptree and calculate the size of transactions in the dataset formed corresponding to this fptree
+        queue <FPNode*> q;
+        q.push(root) ;
+        int space = 0;
+
+        while(!q.empty()){
+            FPNode* node = q.front();
+            q.pop();
+
+            for(auto it = node->children.begin(); it != node->children.end(); ++it){
+                // for each child node, calculate the space of the transaction formed by the root to leaf path to this node
+                // space = freq * (size of item)
+                space += it->second->frequency * (it->second->item.length());
+                q.push(it->second);
+            }
+
+        }
+
+        cout << "space: " << space << endl;
+
+        return space;
+
+
+    }
+    
+
 };
 
 
@@ -410,7 +562,11 @@ public:
 
 
 int main() {
-    ifstream in("D_medium.dat");
+    // start time 
+    clock_t start, end;
+    start = clock();
+    
+    ifstream in("D_small.dat");
     in >> noskipws;
 
 
@@ -481,15 +637,23 @@ int main() {
         
     }
 
-    // print the elements of the transactions_str
-    for (int i = 0; i < transactions_str.size(); i++) {
-        for (int j = 0; j < transactions_str[i].size(); j++) {
-            cout << transactions_str[i][j] << " ";
-        }
-        cout << endl;
-    }
+    // // print the elements of the transactions_str
+    // for (int i = 0; i < transactions_str.size(); i++) {
+    //     for (int j = 0; j < transactions_str[i].size(); j++) {
+    //         cout << transactions_str[i][j] << " ";
+    //     }
+    //     cout << endl;
+    // }
     
+    // end time
+    end = clock();
 
+    // print the time taken
+    cout << "Time taken in reading the file: " << (double)(end - start)/CLOCKS_PER_SEC  << "seconds" << endl;
+
+
+    // start time
+    start = clock();
     vector<vector<string> > dataset =  transactions_str; 
     
   
@@ -505,14 +669,34 @@ int main() {
     // print the fp tree
     // fp_tree.print();
 
+    int orig_space = fp_tree.calc_space();
+
     // now merge the fp tree
     fp_tree.merge();
+
+    // end time
+    end = clock();
+
+    // print the time taken
+    cout << "Time taken in merging the fp tree: " << (double)(end - start)/CLOCKS_PER_SEC << "seconds" << endl;
+
 
     // print the fp tree
     // fp_tree.print();
 
-    
-    
+    // compress the fp tree
+    fp_tree.compress();
+
+    // print the fp tree
+    // fp_tree.print();
+
+    int compressed_space = fp_tree.calc_space();
+
+    // print the compression ratio
+    cout << "compression ratio: " << (double)orig_space/compressed_space << endl;
+    // print the percentage of compressionn
+    cout << "percentage of compression: " << 100 * (double)(orig_space-compressed_space)/orig_space << endl;
+
 
     return 0;
 }
