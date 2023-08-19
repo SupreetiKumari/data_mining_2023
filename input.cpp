@@ -222,7 +222,7 @@ public:
                     // check if frequency of node2 is less than node1
                     if(node2->frequency < node1->frequency){
                         // add a copy of node 1 for the other children of node1 except node 2
-                        FPNode* node1_copy = new FPNode(item1 + "copy", node1->parent);
+                        FPNode* node1_copy = new FPNode(item1 + "_copy", node1->parent);
                         node1_copy->frequency = node1->frequency - node2->frequency;
                         
                         // the children of node 1 except node 2 are the children of temp
@@ -236,7 +236,7 @@ public:
                         // }
 
                         // now add temp to the children of node1's parent
-                        node1->parent->children[item1+"copy"] = node1_copy;
+                        node1->parent->children[item1+"_copy"] = node1_copy;
 
 
 
@@ -388,7 +388,7 @@ public:
 
     }
 
-    void compress(){
+    void compress(vector<vector<string>> &compressed_dataset){
         //now iterate over the fp tree and for each node having "_" in its item, print the item and its frequency
         queue <FPNode*> q;
         q.push(root) ;
@@ -415,11 +415,11 @@ public:
             }
         }
 
-        // // print the compression map
-        // cout << "compression map:" << endl;
-        // for(auto it = compression_map.begin(); it != compression_map.end(); ++it){
-        //     cout << it->first << " " << it->second << endl;
-        // }
+        // print the compression map
+        cout << "compression map:" << endl;
+        for(auto it = compression_map.begin(); it != compression_map.end(); ++it){
+            cout << it->first << " " << it->second << endl;
+        }
 
         // using the compression map replace the items in the fp tree
         queue <FPNode*> q1;
@@ -440,8 +440,8 @@ public:
         }
 
 
-        // using the compression map and the original dataset construct the compressed transactions
-        vector<vector<string>> compressed_dataset;
+        // using the compression map to construct the compressed transactions
+        
 
 
         // iterate over the fptree and for each root to leaf path, construct the compressed transaction
@@ -466,6 +466,7 @@ public:
                     else{
                         compressed_transaction.push_back(temp->item);
                     }
+                    // compressed_transaction.push_back(temp->item);
                     temp = temp->parent;
                 }
 
@@ -515,18 +516,26 @@ public:
 
 
         // print the compressed dataset
+        // calc the space of the compressed dataset
+        double space = 0;
         cout << "compressed dataset:" << endl;
         for(int i=0;i<compressed_dataset.size();i++){
             for(int j=0;j<compressed_dataset[i].size();j++){
+                space += compressed_dataset[i][j].length();
                 cout << compressed_dataset[i][j] << " ";
             }
             cout << endl;
         }
+
+        // cout << "space: " << space << endl;
     
+
 
 
     }
 
+
+    // func to calc space of the dataset formed by the fptree
     int calc_space(){
         // iterate over the fptree and calculate the size of transactions in the dataset formed corresponding to this fptree
         queue <FPNode*> q;
@@ -566,7 +575,7 @@ int main() {
     clock_t start, end;
     start = clock();
     
-    ifstream in("D_small.dat");
+    ifstream in("D_medium.dat");
     in >> noskipws;
 
 
@@ -629,21 +638,32 @@ int main() {
     // convert vectors of vectors of int to vectors of vectors of string
     vector<vector<string>> transactions_str(transactions.size());
 
+    // calc space of the dataset
+    double orig_space = 0; 
+
     for (int i = 0; i < transactions.size(); i++) {
         for (int j = 0; j < transactions[i].size(); j++) {
             transactions_str[i].push_back(to_string(transactions[i][j]));
-            
+            orig_space += transactions_str[i][j].length();
         }
         
     }
 
-    // // print the elements of the transactions_str
-    // for (int i = 0; i < transactions_str.size(); i++) {
-    //     for (int j = 0; j < transactions_str[i].size(); j++) {
-    //         cout << transactions_str[i][j] << " ";
-    //     }
-    //     cout << endl;
-    // }
+    // double orig_space = sizeof(transactions_str);
+    
+
+    cout << "orig space: " << orig_space << endl;
+
+    
+
+
+    // print the elements of the transactions_str
+    for (int i = 0; i < transactions_str.size(); i++) {
+        for (int j = 0; j < transactions_str[i].size(); j++) {
+            cout << transactions_str[i][j] << " ";
+        }
+        cout << endl;
+    }
     
     // end time
     end = clock();
@@ -669,7 +689,7 @@ int main() {
     // print the fp tree
     // fp_tree.print();
 
-    int orig_space = fp_tree.calc_space();
+    // int orig_space = fp_tree.calc_space();
 
     // now merge the fp tree
     fp_tree.merge();
@@ -684,13 +704,27 @@ int main() {
     // print the fp tree
     // fp_tree.print();
 
+    vector<vector<string>> compressed_dataset;
+
     // compress the fp tree
-    fp_tree.compress();
+    fp_tree.compress(compressed_dataset);
+
+    // double compressed_space = sizeof(compressed_dataset);
+    // calc the space of the compressed dataset
+    double compressed_space = 0;
+    for(int i=0;i<compressed_dataset.size();i++){
+        for(int j=0;j<compressed_dataset[i].size();j++){
+            compressed_space += compressed_dataset[i][j].length();
+        }
+    }
+
+
+    cout << "compressed space: " << compressed_space << endl;
 
     // print the fp tree
-    // fp_tree.print();
+    fp_tree.print();
 
-    int compressed_space = fp_tree.calc_space();
+    // int compressed_space = fp_tree.calc_space();
 
     // print the compression ratio
     cout << "compression ratio: " << (double)orig_space/compressed_space << endl;
