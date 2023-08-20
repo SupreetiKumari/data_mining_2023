@@ -12,8 +12,8 @@
 #include <string>
 #include <sstream>
 using namespace std;
-int main(){
- ifstream inputFile("compressed_dataset.dat"); // Replace with your file name
+int main(int argc, char* argv[]){
+ ifstream inputFile(argv[1]); // Replace with your file name
    
 
     int numTransactions;
@@ -104,7 +104,7 @@ int main(){
 
     // now sort the final dataset vector    
     sort(final_dataset.begin(), final_dataset.end());
-      ofstream out("reconstructed.dat");
+      ofstream out(argv[2]);
 
     
     for(int i=0;i<final_dataset.size();i++){
