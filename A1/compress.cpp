@@ -20,11 +20,12 @@ unordered_set<int> duplicate_checker;
 
 bool freq_compare(int a, int b) {
     return (frequency_map[a] > frequency_map[b]);
+
 }
 
 
 
-
+int threshold = 100;
 
 ///// -----------------------------------
 
@@ -80,7 +81,7 @@ public:
         queue <FPNode*> q;
         
         
-        // now iterate over the fptree to merge all consectuive nodes with same frequency
+        // now iterate over the fptree to merge all consecutive nodes with same frequency
         
         q.push(curr) ;
 
@@ -112,7 +113,7 @@ public:
                     continue;
                 }
 
-                if(node->frequency<5){
+                if(node->frequency<2){
                     continue ;
                 }
                 if(node->frequency!=node->children.begin()->second->frequency){
@@ -172,9 +173,13 @@ public:
         }
         }
 
+
+
         
 
+        
 
+        int it = 0 ;
 
         // while(prev!=curr){
         while(true){
@@ -232,6 +237,99 @@ public:
         }
         
 
+        // now iterate over the fptree to remove the nodes such that the frequency of the edge formed by the node with its parent is less than threshold
+        while(it == 0 && !q.empty()) {
+            
+            int n = q.size();
+
+            for(int i=0;i<n;i++){
+                FPNode* temp = q.front();
+                q.pop();
+
+                vector<FPNode*> children;
+                for(auto it = temp->children.begin(); it != temp->children.end(); ++it){
+                    children.push_back(it->second);
+                }
+
+                for(auto it = children.begin(); it != children.end(); ++it){
+                    FPNode* node = *it;
+                    if(lev>0){
+                        
+                        // calculate the frequency of the edge formed by the node with its parent
+                        string edge = node->parent->item + " " + node->item;
+                        int f1 = edge_frequency[edge];
+                        
+                        //iterate over the children of node to find the max frequency of the edge formed by the node with its children
+                        
+                        int flag = 0;
+                        for(auto it1 = node->children.begin(); it1 != node->children.end(); ++it1){
+                            string edge1 = node->item + " " + it1->second->item;
+                            if(edge_frequency[edge1] > threshold){
+                                flag = 1;
+                                break ;
+                            }
+                        }
+                        if(flag == 1){
+                            q.push(node);
+                            continue;
+                        }
+
+                        // else remove this node
+                        node->parent->children.erase(node->item);
+                        // update the edge frequency map
+                        edge_frequency.erase(edge);
+                        
+
+                        // // now update the header map
+                        // header_map[node->item].erase(header_map[node->item].begin(), header_map[node->item].end());
+
+                        
+
+                        
+                        // now update the parent pointers of the children of node
+                        for(auto it1 = node->children.begin(); it1 != node->children.end(); ++it1){
+                            //update the edge frequency map by removing the edge formed by the node and its child
+                            string edge1 = node->item + " " + it1->second->item;
+                            edge_frequency.erase(edge1);
+
+                            it1->second->parent = node->parent;
+
+                            // update the edge frequency map by adding the edge formed by the node's parent and its child
+                            string edge2 = node->parent->item + " " + it1->second->item;
+                            edge_frequency[edge2] = it1->second->frequency;
+
+                            // update the children map of the parent of node
+                            node->parent->children[it1->second->item] = it1->second;
+
+                            // update the header map
+                            // header_map[it1->second->item].push_back(it1->second);
+
+                            // update the queue
+                            q.push(it1->second);
+
+
+                        }
+
+                        // now delete the node
+                        delete node;
+
+                        
+                        
+
+                    }
+                    else{
+                        q.push(node);
+                    }
+         
+                }
+            }
+            lev++ ;
+        }
+
+
+
+
+
 
         
         // cout << "edge frequency map:" << endl ;
@@ -252,7 +350,7 @@ public:
 
 
 
-        if(max_freq<300000){
+        if(max_freq<threshold){
             // terminate = true ;
             break ;
         }
@@ -538,7 +636,7 @@ public:
                     else{ // just merge the nodes
                         // now merge the two nodes
 
-                        cout << "HI I am in else" <<endl ;
+                        // cout << "HI I am in else" <<endl ;
 
                         // cout << "merging nodes " << node1->item << " " << node1->frequency << " " << node2->item << " " << node2->frequency << endl;
                     node1->item = item1 + "_" + item2;
@@ -601,7 +699,7 @@ public:
 
 
         // cout << "end of iteration " << endl ;
-        
+        it++ ;
 
         }
 
@@ -943,6 +1041,9 @@ int main() {
     ifstream in("D_medium.dat");
     in >> noskipws;
 
+    // create a frequency map for each pair of items
+    map <int, int> frequency_map;
+
 
 
     while (!in.eof()) {
@@ -987,6 +1088,8 @@ int main() {
             duplicate_checker.clear();
         }
     }
+
+
 
     for (int i = 0; i < transactions.size(); i++) {
         sort(transactions[i].begin(), transactions[i].end(), freq_compare);
