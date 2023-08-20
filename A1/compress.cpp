@@ -1033,12 +1033,12 @@ void check_correctness(map<string, string> compression_map, vector<vector<string
 
 
 
-int main() {
+int main(int argc, char* argv[]) {
     // start time 
     clock_t start, end;
     start = clock();
     
-    ifstream in("D_small.dat");
+    ifstream in(argv[1]);
     in >> noskipws;
 
     // create a frequency map for each pair of items
@@ -1180,7 +1180,7 @@ int main() {
     fp_tree.compress(compressed_dataset, compression_map);
 
     // write to a file the compressed dataset and the compression map
-    ofstream out("compressed_dataset.dat");
+    ofstream out(argv[2]);
     out<<compressed_dataset.size()<<"\n";
     for(int i=0;i<compressed_dataset.size();i++){
         for(int j=0;j<compressed_dataset[i].size();j++){
