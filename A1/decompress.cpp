@@ -38,12 +38,7 @@ int main(int argc, char* argv[]){
     }
 
     // Printing the transactions
-    for (const auto& transaction : transactions) {
-        for (int value : transaction) {
-            std::cout << value << " ";
-        }
-        std::cout << std::endl;
-    }
+   
  int numMapElements;
     inputFile >> numMapElements;
     inputFile.ignore(); // Consume the newline after the number
@@ -57,10 +52,7 @@ int main(int argc, char* argv[]){
         
         keyValueMap[key] = value;
     }
-     for (const auto& entry : keyValueMap) {
-        std::cout << "Key: " << entry.first << ", Value: " << entry.second << std::endl;
-    }
-
+   
     inputFile.close();
 
 
