@@ -20,11 +20,14 @@ unordered_set<int> duplicate_checker;
 
 bool freq_compare(int a, int b) {
     return (frequency_map[a] > frequency_map[b]);
+
 }
 
 
 
+int threshold = 3;
 
+int trans_size = 0 ;
 
 ///// -----------------------------------
 
@@ -46,11 +49,21 @@ private:
 public:
     FPTree() : root(new FPNode("", nullptr)) {}
 
+    // header map to store the nodes corresponding to each item
+        map <string, vector <FPNode*>> header_map;
+
     void insert(const vector<string>& transaction) {
         FPNode* current = root;
         for (const string& item : transaction) {
             if (current->children.find(item) == current->children.end()) {
                 current->children[item] = new FPNode(item, current);
+                // add the node to the header map
+                if (header_map.find(item) == header_map.end()) {
+                    vector <FPNode*> v;
+                    header_map[item] = v;
+                }
+                header_map[item].push_back(current->children[item]);
+                // header_map[item].push_back(current->children[item]);
             }
             current = current->children[item];
             current->frequency++; 
@@ -66,11 +79,118 @@ public:
         FPNode* curr = new FPNode("", nullptr);
         curr->children = root->children;
         
+
+        queue <FPNode*> q;
+        
+
+        
+        // now iterate over the fptree to merge all consecutive nodes with same frequency
+        
+        q.push(curr) ;
+
+        while(!q.empty()){
+            
+
+            int n = q.size();
+            for(int i=0;i<n;i++){
+                FPNode* temp = q.front();
+                q.pop();
+            
+
+            // store all the children of temp in a vector
+            vector<FPNode*> children;
+            for(auto it = temp->children.begin(); it != temp->children.end(); ++it){
+                children.push_back(it->second);
+            }
+
+            for(auto it = children.begin(); it != children.end(); ++it){
+                FPNode* node = *it;
+
+                if(node->children.size() == 0){
+                    continue;
+                }
+
+                // skip this node if if it has more than 1 child
+                if(node->children.size() > 1){
+                    q.push(node);
+                    continue;
+                }
+
+                if(node->frequency<10){
+                    continue ;
+                }
+                if(node->frequency!=node->children.begin()->second->frequency){
+                    q.push(node);
+                    continue ;
+                }
+
+                
+                // keep iterating to find the last node with the same frequency
+                FPNode *iter = node->children.begin()->second;
+                FPNode *last = node ;
+                string new_item = node->item;
+                string item1 = node->item;
+                
+                // add code for not merging just two elements
+                
+                while(iter!=NULL && iter->frequency == node->frequency){
+                    new_item += "_" + iter->item ;
+                    last = iter;
+                    iter = iter->children.begin()->second;       
+                }   
+                // new_item += "_" + iter->item ;
+
+        
+
+
+                // now merge the nodes
+                // node->item = node->item + "_" + last->item;
+                node->item = new_item;
+                //frequency is that of the last node
+                node->frequency = last->frequency;
+                node->children = last->children;
+
+                // update the children map of the parent of node
+                node->parent->children.erase(item1);
+                node->parent->children[node->item] = node;
+
+                // now remove the last node from the tree
+                last->parent->children.erase(last->item);
+
+                // now update the parent pointers of the children of last
+                for(auto it = last->children.begin(); it != last->children.end(); ++it){
+                    it->second->parent = node;
+                }
+
+
+                // update the queue
+                q.push(node);
+
+
+
+
+
+            }
+
+
+        }
+        }
+
+
+
+        
+
+        
+
+        int it = 0 ;
+
         // while(prev!=curr){
         while(true){
 
             // map to store the frequency of each edge
         map <string, int> edge_frequency;
+
+        
         
         // create a copy of the root node for deletion
         // curr = new FPNode("", nullptr);
@@ -78,14 +198,14 @@ public:
         
         int lev = 0;
 
-        queue <FPNode*> q;
+        
         q.push(curr) ;
 
         int max_freq = 0 ;
         string max_edge = "";
 
 
-
+        
         // iterate over the trie and maintain a frequency map for each edge of items
         while(!q.empty()) {
             
@@ -98,7 +218,7 @@ public:
                 for(auto it = temp->children.begin(); it != temp->children.end(); ++it){
                     q.push(it->second);
                     if(lev>0){
-                                    FPNode* node = it->second;
+                        FPNode* node = it->second;
                         // calculate the frequency of the edge formed by the node with its parent
                         string edge = node->parent->item + " " + node->item;
                         int freq = node->frequency;
@@ -113,11 +233,122 @@ public:
                             max_edge = edge;
                         }
                     }
-        
+         
                 }
             }
             lev++ ;
         }
+        
+        if(it==0){
+            if(max_freq<100000 && trans_size<100000){
+                threshold = 3;
+            }
+            else{
+                if(trans_size>=100000 && max_freq<100000){
+                    threshold = 100;
+                }
+                else if(trans_size>=100000 && max_freq>=100000 && max_freq<1000000){
+                    threshold = 5000;
+                }
+                else{
+                    threshold = max_freq/100 ;
+                }
+            }
+        }
+
+        // now iterate over the fptree to remove the nodes such that the frequency of the edge formed by the node with its parent is less than threshold
+        while(it == 0 && !q.empty()) {
+            
+            int n = q.size();
+
+            for(int i=0;i<n;i++){
+                FPNode* temp = q.front();
+                q.pop();
+
+                vector<FPNode*> children;
+                for(auto it = temp->children.begin(); it != temp->children.end(); ++it){
+                    children.push_back(it->second);
+                }
+
+                for(auto it = children.begin(); it != children.end(); ++it){
+                    FPNode* node = *it;
+                    if(lev>0){
+                        
+                        // calculate the frequency of the edge formed by the node with its parent
+                        string edge = node->parent->item + " " + node->item;
+                        int f1 = edge_frequency[edge];
+                        
+                        //iterate over the children of node to find the max frequency of the edge formed by the node with its children
+                        
+                        int flag = 0;
+                        for(auto it1 = node->children.begin(); it1 != node->children.end(); ++it1){
+                            string edge1 = node->item + " " + it1->second->item;
+                            if(edge_frequency[edge1] > threshold){
+                                flag = 1;
+                                break ;
+                            }
+                        }
+                        if(flag == 1){
+                            q.push(node);
+                            continue;
+                        }
+
+                        // else remove this node
+                        node->parent->children.erase(node->item);
+                        // update the edge frequency map
+                        edge_frequency.erase(edge);
+                        
+
+                        // // now update the header map
+                        // header_map[node->item].erase(header_map[node->item].begin(), header_map[node->item].end());
+
+                        
+
+                        
+                        // now update the parent pointers of the children of node
+                        for(auto it1 = node->children.begin(); it1 != node->children.end(); ++it1){
+                            //update the edge frequency map by removing the edge formed by the node and its child
+                            string edge1 = node->item + " " + it1->second->item;
+                            edge_frequency.erase(edge1);
+
+                            it1->second->parent = node->parent;
+
+                            // update the edge frequency map by adding the edge formed by the node's parent and its child
+                            string edge2 = node->parent->item + " " + it1->second->item;
+                            edge_frequency[edge2] = it1->second->frequency;
+
+                            // update the children map of the parent of node
+                            node->parent->children[it1->second->item] = it1->second;
+
+                            // update the header map
+                            // header_map[it1->second->item].push_back(it1->second);
+
+                            // update the queue
+                            q.push(it1->second);
+
+
+                        }
+
+                        // now delete the node
+                        delete node;
+
+                        
+                        
+
+                    }
+                    else{
+                        q.push(node);
+                    }
+         
+                }
+            }
+            lev++ ;
+        }
+
+
+
+
+
 
         
         // cout << "edge frequency map:" << endl ;
@@ -138,7 +369,7 @@ public:
 
 
 
-        if(max_freq<2000){
+        if(max_freq<threshold){
             // terminate = true ;
             break ;
         }
@@ -160,6 +391,146 @@ public:
         // cout << item1 << " " << item2 << endl;
 
         
+
+
+        // // iterate over the header map to find the nodes corresponding to the two items
+        
+
+        // // 
+        
+        // vector <int> ind_remove(header_map[item1].size(), 0);
+        // for(int i =0 ;i<header_map[item1].size();i++){  
+        //     // cout << i->item << " " << i->frequency << endl;
+        //     FPNode *node1 = header_map[item1][i];
+            
+        //     // check if node1 has a child with item2
+        //     if(node1->children.find(item2) == node1->children.end()){
+        //         continue;
+        //     }
+            
+        //     ind_remove[i] = 1;
+
+
+        //     // node 2 is a child of node 1
+        //     FPNode* node2 = node1->children[item2];
+
+        //     // check if frequency of node2 is less than node1
+        //     if(node2->frequency < node1->frequency){
+        //         // add a copy of node 1 for the other children of node1 except node 2
+        //         FPNode* node1_copy = new FPNode(item1 + "_copy", node1->parent);
+        //         node1_copy->frequency = node1->frequency - node2->frequency;
+                
+        //         // the children of node 1 except node 2 are the children of temp
+                
+        //         node1_copy->children = node1->children;
+        //         node1_copy->children.erase(item2);
+
+        //         // // update the parent pointers of the children of temp
+        //         // for(auto it = node1_copy->children.begin(); it != node1_copy->children.end(); ++it){
+        //         //     it->second->parent = node1_copy;
+        //         // }
+
+        //         // now add temp to the children of node1's parent
+        //         node1->parent->children[item1+"_copy"] = node1_copy;
+
+        //         // now merge the two nodes
+
+        //         // merge 
+        //         node1->item = item1 + "_" + item2;
+        //         //frequency is that of the node 2
+        //         node1->frequency = node2->frequency;
+        //         node1->children = node2->children;
+
+        //         // update the children map of the parent of node 1
+        //         node1->parent->children.erase(item1);
+        //         node1->parent->children[item1 + "_" + item2] = node1;
+
+        //         // now remove the node2 from the tree
+        //         node2->parent->children.erase(item2);
+
+        //         // now update the parent pointers of the children of node2
+        //         for(auto it = node2->children.begin(); it != node2->children.end(); ++it){
+        //             it->second->parent = node1;
+        //         }
+
+
+        //         // update the parent pointers of the children of node1_copy
+        //         for(auto it = node1_copy->children.begin(); it != node1_copy->children.end(); ++it){
+        //             it->second->parent = node1_copy;
+        //         }
+
+
+        //         // update the header map with node1_copy
+        //         header_map[node1_copy->item].push_back(node1_copy);
+        //         header_map[node1->item].push_back(node1);
+
+        //         // remove node2 from the header map
+        //         // header_map[item2].erase(header_map[item2].begin(), header_map[item2].end());
+
+
+
+                
+        //     }
+        //     // merge the consecutive nodes with max frequency
+
+
+
+        //     else{ // just merge the nodes
+                
+                
+        //     // // keep iterating over the children to find the last node with the same frequency
+        //     // FPNode *iter = node1->children[item2];
+        //     // while(iter!=NULL && iter->frequency == node1->frequency){
+        //     //     iter = iter->children[item2];
+        //     // }
+        //     //     iter = 
+                
+                
+        //         // now merge the two nodes
+        //         node1->item = item1 + "_" + item2;
+        //         //frequency is that of the node 2
+        //         node1->frequency = node2->frequency;
+        //         node1->children = node2->children;
+
+        //         // update the children map of the parent of node 1
+        //         node1->parent->children.erase(item1);
+        //         node1->parent->children[item1 + "_" + item2] = node1;
+
+        //         // now remove the node2 from the tree
+        //         node2->parent->children.erase(item2);
+
+        //         // now update the parent pointers of the children of node2
+        //         for(auto it = node2->children.begin(); it != node2->children.end(); ++it){
+        //             it->second->parent = node1;
+        //         }
+
+        //         // update the header map with node1
+        //         header_map[node1->item].push_back(node1);
+
+        //         // remove node2 from the header map
+        //         // header_map[item2].erase(header_map[item2].begin(), header_map[item2].end());
+        //     }
+
+
+
+
+        // }
+
+        // // create a new vector to store the nodes corresponding to item1
+        // vector <FPNode*> v;
+        // for(int i =0 ;i<header_map[item1].size();i++){
+        //     if(ind_remove[i] ==0){
+        //         v.push_back(header_map[item1][i]);
+        //     }
+        // }
+
+        // // update the header map
+        // header_map[item1] = v;
+
+      
+        
+
+
         
 
         // now merge the two items everywhere in the tree
@@ -213,6 +584,8 @@ public:
                         q.push(node);
                         continue;
                     }
+
+                    // cout << "FOUND THE NODES" << endl ;
 
                     // node 2 is a child of node 1
                     FPNode* node2 = node1->children[item2];
@@ -282,6 +655,8 @@ public:
                     else{ // just merge the nodes
                         // now merge the two nodes
 
+                        // cout << "HI I am in else" <<endl ;
+
                         // cout << "merging nodes " << node1->item << " " << node1->frequency << " " << node2->item << " " << node2->frequency << endl;
                     node1->item = item1 + "_" + item2;
                     //frequency is that of the node 2
@@ -329,6 +704,13 @@ public:
 
         }
 
+
+
+
+
+
+
+
         // clear space for the edge_frequency map
         // edge_frequency.clear();
         // delete the copy of the root node
@@ -336,7 +718,7 @@ public:
 
 
         // cout << "end of iteration " << endl ;
-        
+        it++ ;
 
         }
 
@@ -347,7 +729,7 @@ public:
 
     // print the fp tree
     void print() {
-       // cout << "fptree:" << endl ; 
+        cout << "fptree:" << endl ; 
         
         // create a copy of the root node for deletion
         FPNode* curr = new FPNode("", nullptr);
@@ -374,27 +756,28 @@ public:
                     // cout << node->item << " " << node->frequency << " " << node->parent->item << " " << node->children.size() << " ";
                 for(auto it = node->children.begin(); it != node->children.end(); ++it){
                     q.push(it->second);
-                  //  cout << it->second->item << " " << it->second->frequency << " ";
+                    cout << it->second->item << " " << it->second->frequency << " ";
                 }
                 
 
 
                 
             }
-           // cout << endl;
+            cout << endl;
         
 
         }
 
     }
 
-    void compress(vector<vector<string>> &compressed_dataset){
+    void compress(vector<vector<string>> &compressed_dataset, map <string, string> &compression_map){
         //now iterate over the fp tree and for each node having "_" in its item, print the item and its frequency
         queue <FPNode*> q;
         q.push(root) ;
 
-        map <string, string> compression_map ;
-        char ch = 'A';
+        // map <string, string> compression_map ;
+        // char ch = 'A';
+        int sub = -1 ;
 
         while(!q.empty()) {
             FPNode* node = q.front();
@@ -404,8 +787,10 @@ public:
                 // check if node is already present in the compression map
                 if(compression_map.find(node->item) == compression_map.end()){
                     // add the node to the compression map
-                    compression_map[node->item] = ch;
-                    ch++;
+                    // compression_map[node->item] = ch;
+                    compression_map[node->item] = to_string(sub);
+                    // ch++;
+                    sub--;
                 }
                 
             }
@@ -416,31 +801,33 @@ public:
         }
 
         // print the compression map
+        
+        
         // cout << "compression map:" << endl;
         // for(auto it = compression_map.begin(); it != compression_map.end(); ++it){
         //     cout << it->first << " " << it->second << endl;
         // }
 
-        // using the compression map replace the items in the fp tree
-        queue <FPNode*> q1;
-        q1.push(root) ;
+        // cout << "compression map size :" << compression_map.size() << endl;
 
-        while(!q1.empty()) {
-            FPNode* node = q1.front();
-            q1.pop();
+        // // using the compression map replace the items in the fp tree
+        // queue <FPNode*> q1;
+        // q1.push(root) ;
 
-            if(node->item.find("_") != string::npos){
-                // replace the item of the node with the corresponding value in the compression map
-                node->item = compression_map[node->item];
-            }
+        // while(!q1.empty()) {
+        //     FPNode* node = q1.front();
+        //     q1.pop();
 
-            for(auto it = node->children.begin(); it != node->children.end(); ++it){
-                q1.push(it->second);
-            }
-        }
+        //     if(node->item.find("_") != string::npos){
+        //         // replace the item of the node with the corresponding value in the compression map
+        //         node->item = compression_map[node->item];
+        //     }
 
+        //     for(auto it = node->children.begin(); it != node->children.end(); ++it){
+        //         q1.push(it->second);
+        //     }
+        // }
 
-        // using the compression map to construct the compressed transactions
         
 
 
@@ -486,7 +873,7 @@ public:
                     // construct the compressed transaction
                     vector<string> compressed_transaction;
                     FPNode* temp = node;
-                    while(temp->parent != root){
+                    while(temp!= root){
                         // check if the item is present in the compression map
                         if(compression_map.find(temp->item) != compression_map.end()){
                             compressed_transaction.push_back(compression_map[temp->item]);
@@ -515,8 +902,8 @@ public:
 
 
 
-        // print the compressed dataset
-        // calc the space of the compressed dataset
+        // // print the compressed dataset
+        // // calc the space of the compressed dataset
         // double space = 0;
         // cout << "compressed dataset:" << endl;
         // for(int i=0;i<compressed_dataset.size();i++){
@@ -555,7 +942,7 @@ public:
 
         }
 
-   //     cout << "space: " << space << endl;
+        cout << "space: " << space << endl;
 
         return space;
 
@@ -564,6 +951,101 @@ public:
     
 
 };
+
+
+void check_correctness(map<string, string> compression_map, vector<vector<string>> compressed_dataset, vector<vector<string>> transactions_str){
+
+    cout << "size of compression map" << compression_map.size() << endl;
+    // construct the reverse compression map
+    map <string, string> reverse_compression_map;
+    for(auto it = compression_map.begin(); it != compression_map.end(); ++it){
+        reverse_compression_map[it->second] = it->first;
+    }
+
+    
+
+
+    //check the correctness of the compressed dataset by reconstructing the original dataset
+
+    vector <vector<string>> final_dataset(compressed_dataset.size());
+
+    // iterate over the compressed dataset and for each transaction, replace the compressed items with the original items
+    for(int i=0;i<compressed_dataset.size();i++){
+        for(int j=0;j<compressed_dataset[i].size();j++){
+            
+            // check if the item is present in the reverse compression map
+            if(reverse_compression_map.find(compressed_dataset[i][j]) != reverse_compression_map.end()){
+                string item = reverse_compression_map[compressed_dataset[i][j]];
+                
+                
+                stringstream ss(item);
+                string item1;
+                
+                // split the string by "_" and add the items to the final dataset
+                while(getline(ss, item1, '_')){
+                    // if the string is "copy" then ignore it
+                    if(item1 == "copy"){
+                        continue;
+                    }
+                    final_dataset[i].push_back(item1);
+                }
+                
+
+            }
+            else{
+                // add the item to the final dataset
+                final_dataset[i].push_back(compressed_dataset[i][j]);
+            }
+            
+
+        }
+        
+    }
+
+    // // print the final dataset
+    // cout << "final dataset:" << endl;
+    // for(int i=0;i<final_dataset.size();i++){
+    //     for(int j=0;j<final_dataset[i].size();j++){
+    //         cout << final_dataset[i][j] << " ";
+    //     }
+    //     cout << endl;
+    // }
+
+    // compare the final dataset with the original dataset where the order of transactions and items in each transaction is not important
+    // sort the transactions in the final dataset
+    for(int i=0;i<final_dataset.size();i++){
+        sort(final_dataset[i].begin(), final_dataset[i].end());
+    }
+
+    // now sort the final dataset vector    
+    sort(final_dataset.begin(), final_dataset.end());
+
+    // sort the transactions in the original dataset
+    for(int i=0;i<transactions_str.size();i++){
+        sort(transactions_str[i].begin(), transactions_str[i].end());
+    }
+
+    // now sort the transactions_str vector
+    sort(transactions_str.begin(), transactions_str.end());
+
+    // now compare the two vectors
+    bool flag = true;
+    for(int i=0;i<final_dataset.size();i++){
+        if(final_dataset[i] != transactions_str[i]){
+            flag = false;
+            break;
+        }
+    }
+
+    if(flag){
+        cout << "correctness of compression: true" << endl;
+    }
+    else{
+        cout << "correctness of compression: false" << endl;
+    }
+
+
+}
 
 
 /////-----------------------------------
@@ -577,6 +1059,9 @@ int main() {
     
     ifstream in("D_medium.dat");
     in >> noskipws;
+
+    // create a frequency map for each pair of items
+    map <pair<int,int>, int> edge_frequency_map;
 
 
 
@@ -623,6 +1108,32 @@ int main() {
         }
     }
 
+        // // construct the frequency map for each pair of items
+        // for(int i=0;i<transactions.size();i++){
+        //     for(int j=0;j<transactions[i].size();j++){
+        //         for(int k=j+1;k<transactions[i].size();k++){
+        //             pair <int, int> p;
+        //             p.first = transactions[i][j];
+        //             p.second = transactions[i][k];
+        //             if(edge_frequency_map.find(p) == edge_frequency_map.end()){
+        //                 edge_frequency_map[p] = 0;
+        //             }
+        //             edge_frequency_map[p]++;
+        //         }
+        //     }
+        // }
+
+    // // sort each transaction in the dataset in decreasing order of edge frequency
+    // for(int i=0;i<transactions.size();i++){
+    //     // sort each transaction in the dataset in decreasing order of edge frequency
+    //     sort(transactions[i].begin(), transactions[i].end(), [&](int a, int b){
+    //         pair <int, int> p;
+    //         p.first = a;
+    //         p.second = b;
+    //         return edge_frequency_map[p] > edge_frequency_map[p];
+    //     });        
+    // }
+    
     for (int i = 0; i < transactions.size(); i++) {
         sort(transactions[i].begin(), transactions[i].end(), freq_compare);
     }
@@ -653,12 +1164,12 @@ int main() {
     // double orig_space = sizeof(transactions_str);
     
 
-  //  cout << "orig space: " << orig_space << endl;
+    // cout << "orig space: " << orig_space << endl;
 
     
 
 
-    // print the elements of the transactions_str
+    // // print the elements of the transactions_str
     // for (int i = 0; i < transactions_str.size(); i++) {
     //     for (int j = 0; j < transactions_str[i].size(); j++) {
     //         cout << transactions_str[i][j] << " ";
@@ -670,7 +1181,7 @@ int main() {
     end = clock();
 
     // print the time taken
-    cout << "Time taken in reading the file: " << (double)(end - start)/CLOCKS_PER_SEC  << "seconds" << endl;
+    // cout << "Time taken in reading the file: " << (double)(end - start)/CLOCKS_PER_SEC  << "seconds" << endl;
 
 
     // start time
@@ -699,37 +1210,78 @@ int main() {
     end = clock();
 
     // print the time taken
-    cout << "Time taken in merging the fp tree: " << (double)(end - start)/CLOCKS_PER_SEC << "seconds" << endl;
+    // cout << "Time taken in merging the fp tree: " << (double)(end - start)/CLOCKS_PER_SEC << "seconds" << endl;
 
 
     // print the fp tree
     // fp_tree.print();
 
     vector<vector<string>> compressed_dataset;
+    map <string, string> compression_map ;
 
     // compress the fp tree
-    fp_tree.compress(compressed_dataset);
+    fp_tree.compress(compressed_dataset, compression_map);
+
+    // write to a file the compressed dataset and the compression map
+    ofstream out("compressed_dataset.txt");
+    for(int i=0;i<compressed_dataset.size();i++){
+        for(int j=0;j<compressed_dataset[i].size();j++){
+            out << compressed_dataset[i][j] << " ";
+        }
+        out << endl;
+    }
+
+    // write the compression map to a file
+    ofstream out1("compression_map.txt");
+    for(auto it = compression_map.begin(); it != compression_map.end(); ++it){
+        out1 << it->first << " " << it->second << endl;
+    }
+
+    out.close();
+    out1.close();
+    
 
     // double compressed_space = sizeof(compressed_dataset);
     // calc the space of the compressed dataset
-  int compressed_space = 0;
+    int compressed_space = 0;
     for(int i=0;i<compressed_dataset.size();i++){
         compressed_space += compressed_dataset[i].size();
     }
 
 
+    // add the size of compression map to the compressed space
+    for(auto it = compression_map.begin(); it != compression_map.end(); ++it){
+        // calc the number of "_" separated elements in the item
+        stringstream ss(it->first);
+        string item;
+        int count = 0;
+        while(getline(ss, item, '_')){
+            // check if item is "copy"
+            if (item == "copy"){
+                continue;
+            }
+            count++;
+        }
+        compressed_space += count+1;
+        
+    }
 
-    cout << "compressed space: " << compressed_space << endl;
+    // cout << "compressed space: " << compressed_space << endl;
 
     // print the fp tree
-    fp_tree.print();
+    // fp_tree.print();
 
     // int compressed_space = fp_tree.calc_space();
 
     // print the compression ratio
-    cout << "compression ratio: " << (double)orig_space/compressed_space << endl;
+    // cout << "compression ratio: " << (double)orig_space/compressed_space << endl;
     // print the percentage of compressionn
-    cout << "percentage of compression: " << 100 * (double)(orig_space-compressed_space)/orig_space << endl;
+    // cout << "percentage of compression: " << 100 * (double)(orig_space-compressed_space)/orig_space << endl;
+
+
+    // check the correctness of the compression
+    // check_correctness(compression_map, compressed_dataset, transactions_str);    
+
 
 
     return 0;
