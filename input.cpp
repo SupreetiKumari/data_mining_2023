@@ -111,6 +111,15 @@ public:
                     q.push(node);
                     continue;
                 }
+
+                if(node->frequency<5){
+                    continue ;
+                }
+                if(node->frequency!=node->children.begin()->second->frequency){
+                    q.push(node);
+                    continue ;
+                }
+
                 
                 // keep iterating to find the last node with the same frequency
                 FPNode *iter = node->children.begin()->second;
@@ -118,17 +127,17 @@ public:
                 string new_item = node->item;
                 string item1 = node->item;
                 
-                while(iter->children.size() == 1){
+                // add code for not merging just two elements
+                
+                while(iter!=NULL && iter->frequency == node->frequency){
                     new_item += "_" + iter->item ;
+                    last = iter;
                     iter = iter->children.begin()->second;       
                 }   
-                new_item += "_" + iter->item ;
+                // new_item += "_" + iter->item ;
 
+        
 
-
-                last = iter ;
-
-                
 
                 // now merge the nodes
                 // node->item = node->item + "_" + last->item;
@@ -243,7 +252,7 @@ public:
 
 
 
-        if(max_freq<5000){
+        if(max_freq<300000){
             // terminate = true ;
             break ;
         }
@@ -651,7 +660,7 @@ public:
 
         // map <string, string> compression_map ;
         // char ch = 'A';
-        int sub = 10000 ;
+        int sub = 1000000 ;
 
         while(!q.empty()) {
             FPNode* node = q.front();
@@ -1067,6 +1076,23 @@ int main() {
     // compress the fp tree
     fp_tree.compress(compressed_dataset, compression_map);
 
+    // write to a file the compressed dataset and the compression map
+    ofstream out("compressed_dataset.txt");
+    for(int i=0;i<compressed_dataset.size();i++){
+        for(int j=0;j<compressed_dataset[i].size();j++){
+            out << compressed_dataset[i][j] << " ";
+        }
+        out << endl;
+    }
+
+    // write the compression map to a file
+    ofstream out1("compression_map.txt");
+    for(auto it = compression_map.begin(); it != compression_map.end(); ++it){
+        out1 << it->first << " " << it->second << endl;
+    }
+
+    out.close();
+    out1.close();
     
 
     // double compressed_space = sizeof(compressed_dataset);
@@ -1076,6 +1102,23 @@ int main() {
         compressed_space += compressed_dataset[i].size();
     }
 
+
+    // add the size of compression map to the compressed space
+    for(auto it = compression_map.begin(); it != compression_map.end(); ++it){
+        // calc the number of "_" separated elements in the item
+        stringstream ss(it->first);
+        string item;
+        int count = 0;
+        while(getline(ss, item, '_')){
+            // check if item is "copy"
+            if (item == "copy"){
+                continue;
+            }
+            count++;
+        }
+        compressed_space += count+1;
+        
+    }
 
     cout << "compressed space: " << compressed_space << endl;
 
