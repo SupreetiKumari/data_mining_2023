@@ -25,7 +25,7 @@ bool freq_compare(int a, int b) {
 
 
 
-int threshold = 100;
+int threshold = 5;
 
 ///// -----------------------------------
 
@@ -1038,7 +1038,7 @@ int main() {
     clock_t start, end;
     start = clock();
     
-    ifstream in("D_medium.dat");
+    ifstream in("D_small.dat");
     in >> noskipws;
 
     // create a frequency map for each pair of items
@@ -1180,7 +1180,8 @@ int main() {
     fp_tree.compress(compressed_dataset, compression_map);
 
     // write to a file the compressed dataset and the compression map
-    ofstream out("compressed_dataset.txt");
+    ofstream out("compressed_dataset.dat");
+    out<<compressed_dataset.size()<<"\n";
     for(int i=0;i<compressed_dataset.size();i++){
         for(int j=0;j<compressed_dataset[i].size();j++){
             out << compressed_dataset[i][j] << " ";
@@ -1189,13 +1190,15 @@ int main() {
     }
 
     // write the compression map to a file
-    ofstream out1("compression_map.txt");
+ // ofstream out("compression_map.txt");
+ out<<compression_map.size()<<"\n";
     for(auto it = compression_map.begin(); it != compression_map.end(); ++it){
-        out1 << it->first << " " << it->second << endl;
+        out << it->first << " " << it->second << endl;
     }
 
     out.close();
-    out1.close();
+    //out1.close();
+    
     
 
     // double compressed_space = sizeof(compressed_dataset);
