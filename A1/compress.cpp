@@ -25,7 +25,9 @@ bool freq_compare(int a, int b) {
 
 
 
-int threshold = 5;
+int threshold = 3;
+
+int trans_size = 0 ;
 
 ///// -----------------------------------
 
@@ -80,6 +82,7 @@ public:
 
         queue <FPNode*> q;
         
+
         
         // now iterate over the fptree to merge all consecutive nodes with same frequency
         
@@ -113,7 +116,7 @@ public:
                     continue;
                 }
 
-                if(node->frequency<2){
+                if(node->frequency<10){
                     continue ;
                 }
                 if(node->frequency!=node->children.begin()->second->frequency){
@@ -236,6 +239,22 @@ public:
             lev++ ;
         }
         
+        if(it==0){
+            if(max_freq<100000 && trans_size<100000){
+                threshold = 3;
+            }
+            else{
+                if(trans_size>=100000 && max_freq<100000){
+                    threshold = 100;
+                }
+                else if(trans_size>=100000 && max_freq>=100000 && max_freq<1000000){
+                    threshold = 5000;
+                }
+                else{
+                    threshold = max_freq/100 ;
+                }
+            }
+        }
 
         // now iterate over the fptree to remove the nodes such that the frequency of the edge formed by the node with its parent is less than threshold
         while(it == 0 && !q.empty()) {
@@ -355,7 +374,7 @@ public:
             break ;
         }
 
-        cout << "max freq edge: " << max_edge << " has frequency: "  << max_freq << endl;
+        // cout << "max freq edge: " << max_edge << " has frequency: "  << max_freq << endl;
 
         
 
@@ -758,7 +777,7 @@ public:
 
         // map <string, string> compression_map ;
         // char ch = 'A';
-        int sub = 1000000 ;
+        int sub = -1 ;
 
         while(!q.empty()) {
             FPNode* node = q.front();
@@ -771,7 +790,7 @@ public:
                     // compression_map[node->item] = ch;
                     compression_map[node->item] = to_string(sub);
                     // ch++;
-                    sub++;
+                    sub--;
                 }
                 
             }
@@ -1038,11 +1057,11 @@ int main(int argc, char* argv[]) {
     clock_t start, end;
     start = clock();
     
-    ifstream in(argv[1]);
+     ifstream in(argv[1]);
     in >> noskipws;
 
     // create a frequency map for each pair of items
-    map <int, int> frequency_map;
+    map <pair<int,int>, int> edge_frequency_map;
 
 
 
@@ -1089,8 +1108,32 @@ int main(int argc, char* argv[]) {
         }
     }
 
+        // // construct the frequency map for each pair of items
+        // for(int i=0;i<transactions.size();i++){
+        //     for(int j=0;j<transactions[i].size();j++){
+        //         for(int k=j+1;k<transactions[i].size();k++){
+        //             pair <int, int> p;
+        //             p.first = transactions[i][j];
+        //             p.second = transactions[i][k];
+        //             if(edge_frequency_map.find(p) == edge_frequency_map.end()){
+        //                 edge_frequency_map[p] = 0;
+        //             }
+        //             edge_frequency_map[p]++;
+        //         }
+        //     }
+        // }
 
-
+    // // sort each transaction in the dataset in decreasing order of edge frequency
+    // for(int i=0;i<transactions.size();i++){
+    //     // sort each transaction in the dataset in decreasing order of edge frequency
+    //     sort(transactions[i].begin(), transactions[i].end(), [&](int a, int b){
+    //         pair <int, int> p;
+    //         p.first = a;
+    //         p.second = b;
+    //         return edge_frequency_map[p] > edge_frequency_map[p];
+    //     });        
+    // }
+    
     for (int i = 0; i < transactions.size(); i++) {
         sort(transactions[i].begin(), transactions[i].end(), freq_compare);
     }
@@ -1121,7 +1164,7 @@ int main(int argc, char* argv[]) {
     // double orig_space = sizeof(transactions_str);
     
 
-    cout << "orig space: " << orig_space << endl;
+    // cout << "orig space: " << orig_space << endl;
 
     
 
@@ -1138,7 +1181,7 @@ int main(int argc, char* argv[]) {
     end = clock();
 
     // print the time taken
-    cout << "Time taken in reading the file: " << (double)(end - start)/CLOCKS_PER_SEC  << "seconds" << endl;
+    // cout << "Time taken in reading the file: " << (double)(end - start)/CLOCKS_PER_SEC  << "seconds" << endl;
 
 
     // start time
@@ -1167,7 +1210,7 @@ int main(int argc, char* argv[]) {
     end = clock();
 
     // print the time taken
-    cout << "Time taken in merging the fp tree: " << (double)(end - start)/CLOCKS_PER_SEC << "seconds" << endl;
+    // cout << "Time taken in merging the fp tree: " << (double)(end - start)/CLOCKS_PER_SEC << "seconds" << endl;
 
 
     // print the fp tree
@@ -1180,7 +1223,7 @@ int main(int argc, char* argv[]) {
     fp_tree.compress(compressed_dataset, compression_map);
 
     // write to a file the compressed dataset and the compression map
-    ofstream out(argv[2]);
+   ofstream out(argv[2]);
     out<<compressed_dataset.size()<<"\n";
     for(int i=0;i<compressed_dataset.size();i++){
         for(int j=0;j<compressed_dataset[i].size();j++){
@@ -1197,9 +1240,7 @@ int main(int argc, char* argv[]) {
     }
 
     out.close();
-    //out1.close();
-    
-    
+
 
     // double compressed_space = sizeof(compressed_dataset);
     // calc the space of the compressed dataset
@@ -1226,7 +1267,7 @@ int main(int argc, char* argv[]) {
         
     }
 
-    cout << "compressed space: " << compressed_space << endl;
+    // cout << "compressed space: " << compressed_space << endl;
 
     // print the fp tree
     // fp_tree.print();
@@ -1234,13 +1275,13 @@ int main(int argc, char* argv[]) {
     // int compressed_space = fp_tree.calc_space();
 
     // print the compression ratio
-    cout << "compression ratio: " << (double)orig_space/compressed_space << endl;
+    // cout << "compression ratio: " << (double)orig_space/compressed_space << endl;
     // print the percentage of compressionn
-    cout << "percentage of compression: " << 100 * (double)(orig_space-compressed_space)/orig_space << endl;
+    // cout << "percentage of compression: " << 100 * (double)(orig_space-compressed_space)/orig_space << endl;
 
 
     // check the correctness of the compression
-    check_correctness(compression_map, compressed_dataset, transactions_str);    
+    // check_correctness(compression_map, compressed_dataset, transactions_str);    
 
 
 
