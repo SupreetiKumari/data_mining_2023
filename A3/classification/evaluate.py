@@ -197,7 +197,8 @@ def main():
         for batch in val_loader:
             batch = batch.to(device)
             output = model(batch.x, batch.edge_index, batch.batch)
-            ys_this_batch = output.cpu().numpy()[:,1].tolist()
+            probs = F.softmax(output, dim=1)[:, 1].cpu().numpy()
+            ys_this_batch = probs.tolist()
             all_ys.extend(ys_this_batch)
     numpy_ys = np.asarray(all_ys)
     tocsv(numpy_ys, task="classification") # <- Called outside the loop. Called in the eval code.
